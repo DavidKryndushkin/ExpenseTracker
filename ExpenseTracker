@@ -39,137 +39,131 @@
 #Запрограмувати опцію вихідного пункту меню для користувача, що дозволяє зберегти дані та завершити роботу додатку.
 
 #Забезпечити достатнє тестування програми, щоб переконатись у правильності її роботи та забезпечити надійність функцій трекера витрат.
-
 import pickle
-import os
 
 class Transaction:
-    def __init__(self, amount: float, category: str, date: str):
+    def __init__(self, amount: float, category: str, date: str) -> None:
         self.amount = amount
         self.category = category
         self.date = date
 
+    def __str__(self) -> str:
+        return f"Transaction: {self.category}, Amount: {self.amount}, Date: {self.date}"
+
+
 
 class ExpenseTracker:
-    def __init__(self):
+    def __init__(self) -> None:
         self.transactions = []
 
-    def add_transaction(self, transaction: Transaction):
+    def add_transaction(self, transaction: Transaction) -> None:
         self.transactions.append(transaction)
 
-    def remove_transaction(self, transaction: Transaction):
+    def remove_transaction(self, transaction: Transaction) -> None:
         self.transactions.remove(transaction)
 
     def get_total_expenses(self) -> float:
         return sum(transaction.amount for transaction in self.transactions if transaction.amount < 0)
 
     def get_total_income(self) -> float:
-        return sum(transaction.amount for transaction in self.transactions if transaction.amount > 0)
+        return sum(transaction.amount for transaction in self.transactions if transaction.amount >= 0)
 
     def get_expenses_by_month(self, month: str) -> float:
-        return sum(transaction.amount for transaction in self.transactions if
-                   transaction.amount < 0 and transaction.date.startswith(month))
+        return sum(transaction.amount for transaction in self.transactions
+                   if transaction.amount < 0 and transaction.date.startswith(month))
 
     def get_income_by_month(self, month: str) -> float:
-        return sum(transaction.amount for transaction in self.transactions if
-                   transaction.amount > 0 and transaction.date.startswith(month))
+        return sum(transaction.amount for transaction in self.transactions
+                   if transaction.amount >= 0 and transaction.date.startswith(month))
 
+    def save_data(self, file_path: str) -> None:
+        with open(file_path, 'wb') as file:
+            pickle.dump(self.transactions, file)
+
+    def load_data(self, file_path: str) -> None:
+        with open(file_path, 'rb') as file:
+            self.transactions = pickle.load(file)
 
 class ExpenseTrackerApp:
-    def __init__(self):
+    def __init__(self) -> None:
         self.tracker = ExpenseTracker()
 
-    def run(self):
-        self.load_data("transactions.pickle")
-
+    def run(self) -> None:
+        print("Expense Tracker App - CLI Mode")
+        print("Type 'help' or '?' for available commands.")
         while True:
-            print("\nExpense Tracker App")
-            print("1. Add Transaction")
-            print("2. Remove Transaction")
-            print("3. Get Total Expenses")
-            print("4. Get Total Income")
-            print("5. Get Expenses by Month")
-            print("6. Get Income by Month")
-            print("7. Save and Exit")
-
-            choice = input("Enter your choice: ")
-
-            if choice == "1":
-                self.add_transaction()
-            elif choice == "2":
-                self.remove_transaction()
-            elif choice == "3":
-                print("Total Expenses:", self.tracker.get_total_expenses())
-            elif choice == "4":
-                print("Total Income:", self.tracker.get_total_income())
-            elif choice == "5":
-                self.get_expenses_by_month()
-            elif choice == "6":
-                self.get_income_by_month()
-            elif choice == "7":
-                self.save_data("transactions.pickle")
+            user_input = input("Enter command: ").strip()
+            if user_input.lower() in ['exit', 'stop', 'close', '.']:
+                self.tracker.save_data("transactions.pkl")
+                print("Data saved. Exiting...")
                 break
-            else:
-                print("Invalid choice. Please try again.")
+            self.execute_command(user_input)
 
-    def add_transaction(self):
-        try:
-            amount = float(input("Enter amount: "))
-            category = input("Enter category: ")
-            date = input("Enter date (YYYY-MM-DD): ")
+    def execute_command(self, user_input: str) -> None:
+        command, *args = user_input.split()
 
-            transaction = Transaction(amount, category, date)
-            self.tracker.add_transaction(transaction)
-            print("Transaction added successfully.")
-        except ValueError:
-            print("Invalid input. Please enter a valid number for amount.")
-
-    def remove_transaction(self):
-        try:
-            amount = float(input("Enter amount of the transaction to remove: "))
-            category = input("Enter category of the transaction to remove: ")
-            date = input("Enter date of the transaction to remove (YYYY-MM-DD): ")
-
-            transaction_to_remove = Transaction(amount, category, date)
-            self.tracker.remove_transaction(transaction_to_remove)
-            print("Transaction removed successfully.")
-        except ValueError:
-            print("Invalid input. Please enter a valid number for amount.")
-
-    def get_expenses_by_month(self):
-        month = input("Enter month (YYYY-MM): ")
-        expenses = self.tracker.get_expenses_by_month(month)
-        print("Expenses for {}:".format(month), expenses)
-
-    def get_income_by_month(self):
-        month = input("Enter month (YYYY-MM): ")
-        income = self.tracker.get_income_by_month(month)
-        print("Income for {}:".format(month), income)
-
-    def load_data(self, file_path: str):
-        if os.path.exists(file_path):
-            with open(file_path, 'rb') as file:
-                self.tracker = pickle.load(file)
-                print("Data loaded successfully.")
+        if command == 'add':
+            try:
+                amount = float(args[0])
+                category = args[1]
+                date = args[2]
+                transaction = Transaction(amount, category, date)
+                self.tracker.add_transaction(transaction)
+                print("Transaction added successfully.")
+            except ValueError:
+                print("Invalid input format for the 'add' command.")
+            except IndexError:
+                print("Insufficient arguments for the 'add' command.")
+        elif command == 'remove':
+            try:
+                amount = float(args[0])
+                category = args[1]
+                date = args[2]
+                transaction = Transaction(amount, category, date)
+                self.tracker.remove_transaction(transaction)
+                print("Transaction removed successfully.")
+            except ValueError:
+                print("Invalid input format for the 'remove' command.")
+            except IndexError:
+                print("Insufficient arguments for the 'remove' command.")
+        elif command == 'total_expenses':
+            print("Total expenses:", self.tracker.get_total_expenses())
+        elif command == 'total_income':
+            print("Total income:", self.tracker.get_total_income())
+        elif command == 'expenses_by_month':
+            try:
+                month = args[0]
+                print("Expenses for", month, ":", self.tracker.get_expenses_by_month(month))
+            except IndexError:
+                print("Insufficient arguments for the 'expenses_by_month' command.")
+        elif command == 'income_by_month':
+            try:
+                month = args[0]
+                print("Income for", month, ":", self.tracker.get_income_by_month(month))
+            except IndexError:
+                print("Insufficient arguments for the 'income_by_month' command.")
+        elif command == 'help' or command == '?':
+            self.print_help()
         else:
-            print("No data file found. Starting with an empty Expense Tracker.")
+            print("Invalid command. Type 'help' or '?' for available commands.")
 
-    def save_data(self, file_path: str):
-        with open(file_path, 'wb') as file:
-            pickle.dump(self.tracker, file)
-            print("Data saved successfully.")
+    @staticmethod
+    def print_help() -> None:
+        print("Available commands:")
+        print("add <amount> <category> <date> - Add a new transaction")
+        print("remove <amount> <category> <date> - Remove a transaction")
+        print("total_expenses - Get total expenses")
+        print("total_income - Get total income")
+        print("expenses_by_month <month> - Get expenses for a specific month")
+        print("income_by_month <month> - Get income for a specific month")
+        print("exit - Save data and exit the app")
 
 
 if __name__ == "__main__":
-    app = ExpenseTrackerApp()
-    app.run()
-
-
-
-#1 Додати нову транзакцію: Введіть 1 та введіть суму, категорію та дату транзакції.
-#2 Видалити транзакцію: Введіть 2 та введіть суму, категорію та дату транзакції для видалення.
-#3 Отримати загальну суму витрат: Введіть 3.
-#4 Отримати загальну суму доходів: Введіть 4.
-#5 Отримати суму витрат за певний місяць: Введіть 5 та введіть місяць у форматі "РРРР-ММ".
-#6 Отримати суму доходів за певний місяць: Введіть 6 та введіть місяць у форматі "РРРР-ММ".
-#7 Зберегти дані та вийти: Введіть 7.
+    tracker_app = ExpenseTrackerApp()
+    try:
+        tracker_app.tracker.load_data("transactions.pkl")
+        print("Data loaded successfully.")
+    except FileNotFoundError:
+        print("No data found. Starting with an empty tracker.")
+    tracker_app.run()
